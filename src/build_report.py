@@ -63,7 +63,7 @@ from fetch_enrollment_ca import fetch_enrollment_from_txt, fetch_enrollment_scho
 
 
 #---------main config
-OUT_PDF = "reports/Alameda_Sample_Report.pdf"
+
 IMG_DIR = "reports/_tmp"
 PAGE_MARGINS = dict(left=0.5*inch, right=0.5*inch, top=0.5*inch, bottom=0.5*inch)
 CHART_W_IN = 6.5  # fixed chart slot width
@@ -327,7 +327,7 @@ def kpi_tiles(total_k5: int, avg_read_gap: float, avg_speak_gap: float):
         "Val", parent=styles["Title"], alignment=1, textColor=colors.white
     )
     # Format values
-    k1 = Paragraph("Total Enrollment Grades 1-5", tile_style)
+    k1 = Paragraph("Total K-5 Enrollment", tile_style)
     v1 = Paragraph(f"{total_k5:,}", val_style)
 
     k2 = Paragraph("Avg Reading Gap (3–5)", tile_style)
@@ -513,7 +513,7 @@ def build_page_one(doc, story, df_enr, ela_info=None, entity_type="district", en
     ela_tested = ela_info.get("tested")  # available if you want to show later
 
     kpi_tiles_list = [
-        ("Total Enrollment Grades 1-5", f"{total_k5:,}"),
+        ("Total K-5 Enrollment", f"{total_k5:,}"),
         #commenting out the 2 peices of info with direct CAASPP score and Total average compared to benchmark
         #("Reading (CAASPP) Avg", f"{ela_avg:.1f}" if ela_avg is not None else "–"),
         #("Gap vs Standard (2500)", f"{ela_gap_vs_benchmark:+.1f}" if ela_gap_vs_benchmark is not None else "–"),
@@ -558,6 +558,9 @@ def build_page_one(doc, story, df_enr, ela_info=None, entity_type="district", en
 
 #     story += build_school_table_flowables(headers, rows)
 
+def sanitize_filename(name: str) -> str:
+    """Turn 'Irvine Unified' into 'Irvine_Unified'."""
+    return name.replace(" ", "_").replace("/", "-")
 
 def build_references_page(story):
     styles = getSampleStyleSheet()
@@ -614,31 +617,28 @@ def build_references_page(story):
     ))
 
 
-def build_pdf(entity_type: str = "district",
-              entity_name: str = "Alameda Unified",
-              out_path: str = OUT_PDF):
-    """
-    Build a PDF for either a district or a school.
+def build_pdf(entity_type, entity_name, out_path=None):
+    # 0) Resolve output path
+    if out_path is None:
+        safe_name = entity_name.replace(" ", "_")
+        out_path = f"reports/{safe_name}_Report.pdf"
 
-    entity_type: "district" | "school"
-    entity_name: e.g. "Alameda Unified" or "ARISE High"
-    out_path:    destination PDF path
-    """
     ensure_dirs()
+
+    # 1) Prepare doc + story
     doc = SimpleDocTemplate(out_path, pagesize=letter, **PAGE_MARGINS)
     story = []
 
-    # 1) Enrollment for the selected entity
+    # 2) Data
     df_enr = get_enrollment_for_report(entity_type, entity_name)
 
-    # 2) CAASPP summary (district OR school) – safe to fail, show KPIs if available
     try:
         ela_info = summarize_district_ela(entity_type, entity_name)
     except Exception as e:
         print("[warn] ELA summary failed:", e)
-        ela_info = {}  # render page without CAASPP KPIs if parsing fails
+        ela_info = {}
 
-    # 3) Executive summary (page one)
+    # 3) Build pages
     build_page_one(
         doc,
         story,
@@ -647,17 +647,16 @@ def build_pdf(entity_type: str = "district",
         entity_type=entity_type,
         entity_name=entity_name,
     )
-
-    # 4) Charts, one per page
-    build_page_caaspp_ela(story, entity_type, entity_name)  # % below standard by grade
+    build_page_caaspp_ela(story, entity_type, entity_name)   # % below standard
     build_page_elpac_speaking(story, entity_type, entity_name)
-
-    # 5) References page
     build_references_page(story)
 
-        # 6) Write file
+    # 4) Write file
     doc.build(story)
-    print(f"[info] PDF successfully built at: {out_path}")
+
+    # 5) Return path (no printing here; do it in __main__)
+    return out_path
+
 
 
 if __name__ == "__main__":
@@ -680,5 +679,6 @@ if __name__ == "__main__":
         ename = (globals().get("ENTITY_NAME") or "Alameda Unified").strip()
 
     print(f"[info] Building report for {etype!r}: {ename}")
-    build_pdf(etype, ename, OUT_PDF)
-    print(f"[info] PDF successfully built at: {OUT_PDF}")
+    out_path = build_pdf(etype, ename)
+    print(f"[info] PDF successfully built at: {out_path}")
+
