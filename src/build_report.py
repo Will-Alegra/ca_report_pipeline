@@ -58,10 +58,7 @@ from fetch_enrollment_ca import fetch_enrollment_from_txt, fetch_enrollment_scho
 # Config
 # -----------------------------
 
-#--------editable variables
-#note: this is not fully set up, and I dont remember if this works on all or only some of the 3 graphs
-#future improvment: fix charters toggle
-INCLUDE_CHARTERS = False   # set True if you want them included
+
 
 
 
@@ -84,8 +81,15 @@ GRADES_K5 = ["K", "1", "2", "3", "4", "5"]
 #district_name = "Alameda Unified"
 #district_name = "Irvine Unified"
 
+#--------editable variables
+#note: this is not fully set up, and I dont remember if this works on all or only some of the 3 graphs
+#future improvment: fix charters toggle
+INCLUDE_CHARTERS = False   # set True if you want them included
+
 # ---------- Entity selection ----------
 # Choose whether this report is for a whole DISTRICT or a single SCHOOL.
+# by default the code will run with a command line such as: python src/build_report.py district "Irvine Unified"
+#if the district/school and its name is not stated in the run command, THEN it will default to the following after looking at in the run line first. 
 ENTITY_TYPE = "district"   # or "school"
 #ENTITY_TYPE = "school"
 ENTITY_NAME = "Irvine Unified"   # e.g., "Alameda Unified" or "ARISE High"
@@ -408,45 +412,6 @@ def build_page_caaspp_ela(story, entity_type, entity_name):
     ))
 
 
-    # labels, pct_below, _tested = district_ela_pct_below_standard_by_grade(district_name)
-
-    # png = os.path.join(IMG_DIR, "caaspp_ela_pct_below_g1_5.png")
-    # save_bar_chart_with_na(
-    #     labels, pct_below, png,
-    #     title="CAASPP ELA — % of Students Below Standard (Levels 1+2) by Grade",
-    #     y_label="% Below Standard (L1 + L2)",
-    #     y_max=100
-    # )
-    # story.append(Image(png, width=CHART_W_IN*inch, height=CHART_H_IN*inch))
-    # story.append(Spacer(1, 6))
-    # story.append(Paragraph("Note: CAASPP ELA is administered starting in grade 3; grades 1–2 display as N/A.", styles["Italic"]))
-
-
-# def build_page_caaspp_ela(story, district_name):
-#     styles = getSampleStyleSheet()
-#     story.append(PageBreak())
-#     story.append(Paragraph("Reading (CAASPP ELA) by Grade (1–5)", styles["Heading2"]))
-#     story.append(Spacer(1, 8))
-
-#     # 🔥 real per-grade numbers:
-#     labels, scores, _tested = district_ela_by_grade(district_name)
-    
-#     #debuger
-#     print("[debug] ELA by grade:", list(zip(labels, scores)))
-
-
-#     png = os.path.join(IMG_DIR, "caaspp_ela_g1_5.png")
-#     save_bar_chart_with_na(
-#         labels, scores, png,
-#         title="CAASPP ELA Mean Scale Score by Grade",
-#         y_label="Mean Scale Score"
-#     )
-#     story.append(Image(png, width=CHART_W_IN*inch, height=CHART_H_IN*inch))
-#     story.append(Spacer(1, 6))
-#     story.append(Paragraph("Note: CAASPP tests start at grade 3; grades 1–2 show as N/A.", styles["Italic"]))
-
-
-# Page: Speaking (ELPAC) by grade 
 
 
 def build_page_elpac_speaking(story, entity_type, entity_name):
@@ -553,8 +518,9 @@ def build_page_one(doc, story, df_enr, ela_info=None, entity_type="district", en
 
     kpi_tiles_list = [
         ("Total K–5 Enrollment", f"{total_k5:,}"),
-        ("Reading (CAASPP) Avg", f"{ela_avg:.1f}" if ela_avg is not None else "–"),
-        ("Gap vs Standard (2500)", f"{ela_gap_vs_benchmark:+.1f}" if ela_gap_vs_benchmark is not None else "–"),
+        #commenting out the 2 peices of info with direct CAASPP score and Total average compared to benchmark
+        #("Reading (CAASPP) Avg", f"{ela_avg:.1f}" if ela_avg is not None else "–"),
+        #("Gap vs Standard (2500)", f"{ela_gap_vs_benchmark:+.1f}" if ela_gap_vs_benchmark is not None else "–"),
     ]
     for label, value in kpi_tiles_list:
         story.append(Paragraph(f"<b>{label}:</b> {value}", styles["BodyText"]))
@@ -575,26 +541,26 @@ def build_page_one(doc, story, df_enr, ela_info=None, entity_type="district", en
 
 
 
-def build_page_two_enrollment_table(story, df_enr, entity_type="district", entity_name=""):
-    styles = getSampleStyleSheet()
-    story.append(PageBreak())
-    story.append(Paragraph(
-        "Enrollment by School (K–5)" if entity_type == "district" else f"Enrollment — {entity_name} (K–5)",
-        styles["Heading2"]
-    ))
-    story.append(Spacer(1, 6))
+# def build_page_two_enrollment_table(story, df_enr, entity_type="district", entity_name=""):
+#     styles = getSampleStyleSheet()
+#     story.append(PageBreak())
+#     story.append(Paragraph(
+#         "Enrollment by School (K–5)" if entity_type == "district" else f"Enrollment — {entity_name} (K–5)",
+#         styles["Heading2"]
+#     ))
+#     story.append(Spacer(1, 6))
 
-    # If SCHOOL mode, df_enr will be a single row (one school) — that’s fine.
-    headers = ["School", "K", "1", "2", "3", "4", "5", "Total"]
-    rows = df_enr[headers].values.tolist()
-    # Top-10 chart only really applies in district mode; skip in school mode.
-    if entity_type == "district":
-        top10_png = os.path.join(IMG_DIR, "top10_schools.png")
-        save_top10_schools_chart(rows, top10_png)
-        story.append(Image(top10_png, width=CHART_W_IN*inch, height=CHART_H_IN*inch))
-        story.append(Spacer(1, 12))
+#     # If SCHOOL mode, df_enr will be a single row (one school) — that’s fine.
+#     headers = ["School", "K", "1", "2", "3", "4", "5", "Total"]
+#     rows = df_enr[headers].values.tolist()
+#     # Top-10 chart only really applies in district mode; skip in school mode.
+#     if entity_type == "district":
+#         top10_png = os.path.join(IMG_DIR, "top10_schools.png")
+#         save_top10_schools_chart(rows, top10_png)
+#         story.append(Image(top10_png, width=CHART_W_IN*inch, height=CHART_H_IN*inch))
+#         story.append(Spacer(1, 12))
 
-    story += build_school_table_flowables(headers, rows)
+#     story += build_school_table_flowables(headers, rows)
 
 
 def build_references_page(story):
@@ -687,7 +653,6 @@ def build_pdf(entity_type: str = "district",
     )
 
     # 4) Charts, one per page
-    build_page_enrollment(story, df_enr)                    # if you want the enrollment page
     build_page_caaspp_ela(story, entity_type, entity_name)  # % below standard by grade
     build_page_elpac_speaking(story, entity_type, entity_name)
 
