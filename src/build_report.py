@@ -107,13 +107,7 @@ ela_info = summarize_district_ela(ENTITY_TYPE, ENTITY_NAME)
 # ---------------------------------------------------------------------------
 
 grades = ["K", "1", "2", "3", "4", "5"]
-enrollment = [410, 395, 720, 690, 960, 730]  # fake counts
-ela_gap = [0.00, 0.00, 0.00, 0.28, 0.22, 0.26]  # K–2 not assessed; 3–5 are example gaps
 
-# KPIs (fake for now)
-kpi_total_k5 = sum(enrollment)
-kpi_avg_reading_gap = sum(ela_gap[3:]) / max(1, len(ela_gap[3:]))  # 3–5 only
-kpi_avg_speaking_gap = 0.31  # placeholder until we wire ELPAC
 
 # -----------------------------
 # Helpers
@@ -230,7 +224,8 @@ def save_bar_chart_reading_gap(labels, pct_below, out_png):
     bars = ax.bar(labels, values)
     ax.set_ylim(0, y_max)
     ax.set_ylabel("% Below Standard (L1 + L2)")
-    ax.set_title("CAASPP ELA — % of Students Below Standard (Levels 1+2) by Grade")
+    ax.set_title("Reading Gap by Grade")
+    #"CAASPP ELA — % of Students Below Standard (Levels 1+2) by Grade"
 
     pad = y_max * 0.02
     for bar, v in zip(bars, pct_below):
@@ -304,7 +299,8 @@ def save_bar_chart_elpac_pct_below(labels, pct_below, out_png):
 
     ax.set_ylim(0, y_max)
     ax.set_ylabel("% in Levels 1 + 2 (Speaking)")
-    ax.set_title("ELPAC Speaking — % Below 'Developed' (Levels 1+2) by Grade")
+    ax.set_title("Speaking Gap by Grade")
+    #"ELPAC Speaking — % Below 'Developed' (Levels 1+2) by Grade")
 
     pad = y_max * 0.02
     for bar, v in zip(bars, pct_below):
@@ -331,7 +327,7 @@ def kpi_tiles(total_k5: int, avg_read_gap: float, avg_speak_gap: float):
         "Val", parent=styles["Title"], alignment=1, textColor=colors.white
     )
     # Format values
-    k1 = Paragraph("Total K–5 Enrollment", tile_style)
+    k1 = Paragraph("Total Enrollment Grades 1-5", tile_style)
     v1 = Paragraph(f"{total_k5:,}", val_style)
 
     k2 = Paragraph("Avg Reading Gap (3–5)", tile_style)
@@ -517,7 +513,7 @@ def build_page_one(doc, story, df_enr, ela_info=None, entity_type="district", en
     ela_tested = ela_info.get("tested")  # available if you want to show later
 
     kpi_tiles_list = [
-        ("Total K–5 Enrollment", f"{total_k5:,}"),
+        ("Total Enrollment Grades 1-5", f"{total_k5:,}"),
         #commenting out the 2 peices of info with direct CAASPP score and Total average compared to benchmark
         #("Reading (CAASPP) Avg", f"{ela_avg:.1f}" if ela_avg is not None else "–"),
         #("Gap vs Standard (2500)", f"{ela_gap_vs_benchmark:+.1f}" if ela_gap_vs_benchmark is not None else "–"),
